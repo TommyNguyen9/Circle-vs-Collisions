@@ -48,7 +48,7 @@ public:
 		for (int i = 0; i < nPoints; i++)
 			modelCircle.push_back({ cosf(i / (float)(nPoints - 1) * 2.0f * 3.14159f), sinf(i / (float)(nPoints - 1) * 2.0f * 3.14159f) });
 
-		float fDefaultRad = 4.0f;
+		float fDefaultRad = 8.0f;
 		AddBall(ScreenWidth() * 0.25f, ScreenHeight() * 0.5f, fDefaultRad);
 		AddBall(ScreenWidth() * 0.75f, ScreenHeight() * 0.5f, fDefaultRad);
 
@@ -58,6 +58,35 @@ public:
 
 	bool OnUserUpdate(float fElapsedTime)
 	{
+		auto DoCirclesOverlap = [](float x1, float y1, float r1, float x2, float y2, float r2)
+			{
+				return fabs((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)) <= (r1 + r2) * (r1 + r2);
+			};
+
+
+		for (auto& ball : vecBalls)
+		{
+			for (auto& target : vecBalls)
+			{
+				if (ball.id != target.id)
+				{
+					if (DoCirclesOverlap(ball.px, ball.py, ball.radius, target.px, target.py, target.radius))
+					{
+						// Distance between ball centers:
+						float fDistance = sqrtf((ball.px - target.px) * (ball.px - target.px) + (ball.py - target.py) * (ball.py - target.py));
+
+						float fOverlap = 0.5f * (fDistance - ball.radius - target.radius);
+
+						// Displace current ball:
+						ball.px -= fOverlap * (ball.px - target.px) / fDistance;
+						ball.py -= fOverlap * (ball.py - target.py) / fDistance;
+					}
+
+				}
+			}
+
+		}
+
 
 		// Clear screen
 		Fill(0, 0, ScreenWidth(), ScreenHeight(), ' ');
@@ -75,7 +104,7 @@ public:
 int main()
 {
 	CirclePhysics game;
-	if (game.ConstructConsole(160, 120, 8, 8))
+	if (game.ConstructConsole(190, 160, 5, 5))
 		game.Start();
 	else
 		wcout << L"Could not construct console" << endl;
