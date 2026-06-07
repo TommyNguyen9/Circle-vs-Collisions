@@ -71,7 +71,7 @@ public:
 				return fabs((x1 - px) * (x1 - px) + (y1 - py) * (y1 - py)) < (r1 * r1);
 			};
 
-		if (m_mouse[0].bPressed)
+		if (m_mouse[0].bPressed || m_mouse[1].bPressed)
 		{
 			pSelectedBall = nullptr;
 			for (auto& ball : vecBalls)
@@ -98,8 +98,40 @@ public:
 			pSelectedBall = nullptr;
 		}
 
+		if (m_mouse[1].bReleased)
+		{
+			if (pSelectedBall != nullptr)
+			{
+				// Apply velocity
+				pSelectedBall->vx = 5.0f * ((pSelectedBall->px) - (float)m_mousePosX);
+				pSelectedBall->vy = 5.0f * ((pSelectedBall->py) - (float)m_mousePosY);
+			}
+		}
+
 		vector<pair<sBall*, sBall*>> vecCollidingPairs;
 
+		// Update ball positions
+		for (auto& ball : vecBalls)
+		{
+			ball.ax = -ball.vx * 0.8f;
+			ball.ay = -ball.vy * 0.8f;
+			ball.vx += ball.ax * fElapsedTime;
+			ball.vy += ball.ay * fElapsedTime;
+			ball.px += ball.vx * fElapsedTime;
+			ball.py += ball.vy * fElapsedTime;
+
+			// Rotation around the screen:
+			if (ball.px < 0) ball.px += (float)ScreenWidth();
+			if (ball.px >= ScreenWidth()) ball.px -= (float)ScreenWidth();
+			if (ball.py < 0) ball.py += (float)ScreenHeight();
+			if (ball.py >= ScreenHeight()) ball.py -= (float)ScreenHeight();
+
+			if (fabs(ball.vx * ball.vx + ball.vy * ball.vy) < 0.01f)
+			{
+				ball.vx = 0;
+				ball.vy = 0;
+			}
+		}
 
 		for (auto& ball : vecBalls)
 		{
@@ -148,6 +180,12 @@ public:
 
 		for (auto c : vecCollidingPairs)
 			DrawLine(c.first->px, c.first->py, c.second->px, c.second->py, PIXEL_SOLID, FG_RED);
+
+		if (pSelectedBall != nullptr)
+		{
+			// Draw Cue
+			DrawLine(pSelectedBall->px, pSelectedBall->py, m_mousePosX, m_mousePosY, PIXEL_SOLID, FG_BLUE);
+		}
 
 		return true;
 	}
