@@ -12,6 +12,16 @@ public:
 	}
 
 public:
-	sslsaks
+	bool OnUserCreate()
+	{
+
+		return true;
+	}
+
+	bool OnUserUpdate(float fElapsedTime)
+	{
+
+		return true;
+	}
 
 };
