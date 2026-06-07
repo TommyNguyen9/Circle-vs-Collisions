@@ -9,6 +9,7 @@ struct sBall
 	float vx, vy;
 	float ax, ay;
 	float radius;
+	float mass;
 
 	int id;
 };
@@ -33,6 +34,7 @@ private:
 		b.vx = 0; b.vy = 0;
 		b.ax = 0; b.ay = 0;
 		b.radius = r;
+		b.mass = r * 10.0f;
 
 		b.id = vecBalls.size();
 		vecBalls.emplace_back(b);
@@ -54,7 +56,7 @@ public:
 		//AddBall(ScreenWidth() * 0.75f, ScreenHeight() * 0.5f, fDefaultRad);
 
 		for (int i = 0; i < 10; i++)
-			AddBall(rand() % ScreenWidth(), rand() % ScreenHeight(), fDefaultRad);
+			AddBall(rand() % ScreenWidth(), rand() % ScreenHeight(), rand() % 16 +2);
 
 		return true;
 	}
@@ -168,6 +170,36 @@ public:
 		{
 			sBall *b1 = c.first;
 			sBall* b2 = c.second;
+
+			// Distance between 2 balls
+			float fDistance = sqrtf((b1->px - b2->px) * (b1->px - b2->px) + (b1->py - b2->py) * (b1->py - b2->py));
+
+			// Normal:
+			float nx = (b2->px - b1->px) / fDistance;
+			float ny = (b2->py - b1->py) / fDistance;
+
+			// Tangent
+			float tx = -ny;
+			float ty = nx;
+
+			// Dot product tangent:
+			float dpTan1 = b1->vx * tx + b1->vy * ty;
+			float dpTan2 = b2->vx * tx + b2->vy * ty;
+
+			// Dot Product Normal:
+			float dpNorm1 = b1->vx * nx + b1->vy * ny;
+			float dpNorm2 = b2->vx * nx + b2->vy * ny;
+
+			// Conservation of momentum in 1D
+			float m1 = (dpNorm1 * (b1->mass - b2->mass) + 2.0f * b2->mass * dpNorm2) / (b1->mass + b2->mass);
+			float m2 = (dpNorm2 * (b2->mass - b1->mass) + 2.0f * b1->mass * dpNorm1) / (b1->mass + b2->mass);
+
+			// Update ball velocities
+			b1->vx = tx * dpTan1 + nx * m1;
+			b1->vy = ty * dpTan1 + ny * m1;
+			b2->vx = tx * dpTan2 + nx * m2;
+			b2->vy = ty * dpTan2 + ny * m2;
+
 		}
 
 
