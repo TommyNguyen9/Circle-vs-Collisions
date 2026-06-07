@@ -15,7 +15,7 @@ public:
 	bool OnUserCreate()
 	{
 
-		return true;dss
+		return true;dssssssss
 	}
 
 	bool OnUserUpdate(float fElapsedTime)
