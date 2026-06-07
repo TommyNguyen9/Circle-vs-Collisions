@@ -53,6 +53,8 @@ public:
 		//AddBall(ScreenWidth() * 0.25f, ScreenHeight() * 0.5f, fDefaultRad);
 		//AddBall(ScreenWidth() * 0.75f, ScreenHeight() * 0.5f, fDefaultRad);
 
+		for (int i = 0; i < 10; i++)
+			AddBall(rand() % ScreenWidth(), rand() % ScreenHeight(), fDefaultRad);
 
 		return true;
 	}
@@ -96,6 +98,8 @@ public:
 			pSelectedBall = nullptr;
 		}
 
+		vector<pair<sBall*, sBall*>> vecCollidingPairs;
+
 
 		for (auto& ball : vecBalls)
 		{
@@ -105,6 +109,9 @@ public:
 				{
 					if (DoCirclesOverlap(ball.px, ball.py, ball.radius, target.px, target.py, target.radius))
 					{
+						// Collision has occured
+						vecCollidingPairs.push_back({ &ball, &target });
+						
 						// Distance between ball centers:
 						float fDistance = sqrtf((ball.px - target.px) * (ball.px - target.px) + (ball.py - target.py) * (ball.py - target.py));
 
@@ -124,6 +131,13 @@ public:
 
 		}
 
+		// Work out dynamic collisions:
+		for (auto c : vecCollidingPairs)
+		{
+			sBall *b1 = c.first;
+			sBall* b2 = c.second;
+		}
+
 
 		// Clear screen
 		Fill(0, 0, ScreenWidth(), ScreenHeight(), ' ');
@@ -131,6 +145,9 @@ public:
 		// Draw Balls:
 		for (auto ball : vecBalls)
 			DrawWireFrameModel(modelCircle, ball.px, ball.py, atan2f(ball.vy, ball.vx), ball.radius, FG_WHITE);
+
+		for (auto c : vecCollidingPairs)
+			DrawLine(c.first->px, c.first->py, c.second->px, c.second->py, PIXEL_SOLID, FG_RED);
 
 		return true;
 	}
