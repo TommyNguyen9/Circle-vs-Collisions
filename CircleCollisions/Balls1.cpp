@@ -24,6 +24,7 @@ public:
 private:
 	vector<pair<float, float>> modelCircle;
 	vector<sBall> vecBalls;
+	sBall* pSelectedBall = nullptr;
 
 	void AddBall(float x, float y, float r = 5.0f)
 	{
@@ -49,8 +50,8 @@ public:
 			modelCircle.push_back({ cosf(i / (float)(nPoints - 1) * 2.0f * 3.14159f), sinf(i / (float)(nPoints - 1) * 2.0f * 3.14159f) });
 
 		float fDefaultRad = 8.0f;
-		AddBall(ScreenWidth() * 0.25f, ScreenHeight() * 0.5f, fDefaultRad);
-		AddBall(ScreenWidth() * 0.75f, ScreenHeight() * 0.5f, fDefaultRad);
+		//AddBall(ScreenWidth() * 0.25f, ScreenHeight() * 0.5f, fDefaultRad);
+		//AddBall(ScreenWidth() * 0.75f, ScreenHeight() * 0.5f, fDefaultRad);
 
 
 		return true;
@@ -62,6 +63,38 @@ public:
 			{
 				return fabs((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)) <= (r1 + r2) * (r1 + r2);
 			};
+
+		auto IsPointInCircle = [](float x1, float y1, float r1, float px, float py)
+			{
+				return fabs((x1 - px) * (x1 - px) + (y1 - py) * (y1 - py)) < (r1 * r1);
+			};
+
+		if (m_mouse[0].bPressed)
+		{
+			pSelectedBall = nullptr;
+			for (auto& ball : vecBalls)
+			{
+				if (IsPointInCircle(ball.px, ball.py, ball.radius, m_mousePosX, m_mousePosY))
+				{
+					pSelectedBall = &ball;
+					break;
+				}
+			}
+		}
+
+		if (m_mouse[0].bHeld)
+		{
+			if (pSelectedBall != nullptr)
+			{
+				pSelectedBall->px = m_mousePosX;
+				pSelectedBall->py = m_mousePosY;
+			}
+		}
+
+		if (m_mouse[0].bReleased)
+		{
+			pSelectedBall = nullptr;
+		}
 
 
 		for (auto& ball : vecBalls)
@@ -80,6 +113,10 @@ public:
 						// Displace current ball:
 						ball.px -= fOverlap * (ball.px - target.px) / fDistance;
 						ball.py -= fOverlap * (ball.py - target.py) / fDistance;
+
+						// Displace target ball:
+						target.px += fOverlap * (ball.px - target.px) / fDistance;
+						target.py += fOverlap * (ball.py - target.py) / fDistance;
 					}
 
 				}
