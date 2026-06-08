@@ -57,23 +57,20 @@ private:
 
 public:
 	bool OnUserCreate()
-	{
+	{		
 
-		//Define circle model:
-		modelCircle.push_back({ 0.0f, 0.0f });
-		int nPoints = 20;
-		for (int i = 0; i < nPoints; i++)
-			modelCircle.push_back({ cosf(i / (float)(nPoints - 1) * 2.0f * 3.14159f), sinf(i / (float)(nPoints - 1) * 2.0f * 3.14159f) });
-
-		float fDefaultRad = 8.0f;
+		float fDefaultRad = 0.05f;
 		//AddBall(ScreenWidth() * 0.25f, ScreenHeight() * 0.5f, fDefaultRad);
 		AddBall(ScreenWidth() * 0.75f, ScreenHeight() * 0.5f, fDefaultRad);
 
-		for (int i = 0; i < 50; i++)
+		for (int i = 0; i < 75; i++)
 			AddBall(rand() % ScreenWidth(), rand() % ScreenHeight(), rand() % 6 + 2);
 
-		float fLineRadius = 4.0f;
+		float fLineRadius = 1.4f;
 		vecLines.push_back({ 30.0f, 30.0f, 100.0f, 30.0f, fLineRadius });
+		vecLines.push_back({ 30.0f, 50.0f, 100.0f, 50.0f, fLineRadius });
+		vecLines.push_back({ 30.0f, 73.0f, 100.0f, 73.0f, fLineRadius });
+		vecLines.push_back({ 30.0f, 96.0f, 100.0f, 96.0f, fLineRadius });
 
 		return true;
 	}
@@ -191,7 +188,7 @@ public:
 						ball.oy = ball.py;
 
 						ball.ax = -ball.vx * 0.8f;
-						ball.ay = -ball.vy * 0.8f;
+						ball.ay = -ball.vy * 0.8f + 100.0f;
 
 						// Updating ball physics
 						ball.vx += ball.ax * ball.fSimTimeRemaining;
@@ -367,7 +364,7 @@ public:
 
 		// Draw Balls:
 		for (auto ball : vecBalls)
-			DrawWireFrameModel(modelCircle, ball.px, ball.py, atan2f(ball.vy, ball.vx), ball.radius, FG_WHITE);
+			FillCircle(ball.px, ball.py, ball.radius, PIXEL_SOLID, FG_RED);
 
 		for (auto c : vecCollidingPairs)
 			DrawLine(c.first->px, c.first->py, c.second->px, c.second->py, PIXEL_SOLID, FG_RED);
