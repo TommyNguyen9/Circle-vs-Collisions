@@ -39,7 +39,7 @@ private:
 
 	vector<sLineSegment> vecLines;
 	sLineSegment* pSelectedLine = nullptr;
-	bool bSelectedLineStart;
+	bool bSelectedLineStart = false;
 
 	void AddBall(float x, float y, float r = 5.0f)
 	{
@@ -131,11 +131,26 @@ public:
 				pSelectedBall->px = m_mousePosX;
 				pSelectedBall->py = m_mousePosY;
 			}
+
+			if (pSelectedLine != nullptr)
+			{
+				if (bSelectedLineStart)
+				{
+					pSelectedLine->sx = GetMouseX();
+					pSelectedLine->sy = GetMouseY();
+				}
+				else
+				{
+					pSelectedLine->ex = GetMouseX();
+					pSelectedLine->ey = GetMouseY();
+				}
+			}
 		}
 
 		if (m_mouse[0].bReleased)
 		{
 			pSelectedBall = nullptr;
+			pSelectedLine = nullptr;
 		}
 
 		if (m_mouse[1].bReleased)
@@ -198,8 +213,24 @@ public:
 					}
 				}
 
+				
+
+				// Static collisions eg: overlap
 				for (auto& ball : vecBalls)
 				{
+
+					// Against Edges
+					for (auto &edge : vecLines)
+					{
+						float fLineX1 = edge.ex - edge.sx;
+						float fLineY1 = edge.ey - edge.sy;
+
+						float fLineX2 = ball.px - edge.sx;
+						float fLineY2 = ball.py - edge.sy;
+
+						float fEdgeLength = fLineX1 * fLineX1 + fLineY1 * fLineY1;
+					}
+
 					for (auto& target : vecBalls)
 					{
 						if (ball.id != target.id)
