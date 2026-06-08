@@ -11,6 +11,8 @@ struct sBall
 	float radius;
 	float mass;
 
+	float fSimTimeRemaining;
+
 	int id;
 };
 
@@ -55,8 +57,8 @@ public:
 		//AddBall(ScreenWidth() * 0.25f, ScreenHeight() * 0.5f, fDefaultRad);
 		//AddBall(ScreenWidth() * 0.75f, ScreenHeight() * 0.5f, fDefaultRad);
 
-		for (int i = 0; i < 10; i++)
-			AddBall(rand() % ScreenWidth(), rand() % ScreenHeight(), rand() % 16 +2);
+		for (int i = 0; i < 50; i++)
+			AddBall(rand() % ScreenWidth(), rand() % ScreenHeight(), rand() % 6 + 2);
 
 		return true;
 	}
@@ -112,96 +114,116 @@ public:
 
 		vector<pair<sBall*, sBall*>> vecCollidingPairs;
 
-		// Update ball positions
-		for (auto& ball : vecBalls)
+		int nSimulationUpdates = 4;
+
+		float fSimElapsedTime = fElapsedTime / (float)nSimulationUpdates;
+
+		int nMaxSimulationSteps = 15;
+
+		// Main simulation loop
+		for (int i = 0; i < nSimulationUpdates; i++)
 		{
-			ball.ax = -ball.vx * 0.8f;
-			ball.ay = -ball.vy * 0.8f;
-			ball.vx += ball.ax * fElapsedTime;
-			ball.vy += ball.ay * fElapsedTime;
-			ball.px += ball.vx * fElapsedTime;
-			ball.py += ball.vy * fElapsedTime;
+			// Set all balls time to maximum for epoch
+			for (auto& ball : vecBalls)
+				ball.fSimTimeRemaining = fSimElapsedTime;
 
-			// Rotation around the screen:
-			if (ball.px < 0) ball.px += (float)ScreenWidth();
-			if (ball.px >= ScreenWidth()) ball.px -= (float)ScreenWidth();
-			if (ball.py < 0) ball.py += (float)ScreenHeight();
-			if (ball.py >= ScreenHeight()) ball.py -= (float)ScreenHeight();
-
-			if (fabs(ball.vx * ball.vx + ball.vy * ball.vy) < 0.01f)
+			for (int j = 0; j < nMaxSimulationSteps; j++)
 			{
-				ball.vx = 0;
-				ball.vy = 0;
-			}
-		}
 
-		for (auto& ball : vecBalls)
-		{
-			for (auto& target : vecBalls)
-			{
-				if (ball.id != target.id)
+				// Update ball positions
+				for (auto& ball : vecBalls)
 				{
-					if (DoCirclesOverlap(ball.px, ball.py, ball.radius, target.px, target.py, target.radius))
+					ball.ax = -ball.vx * 0.8f;
+					ball.ay = -ball.vy * 0.8f;
+
+					// Updating ball physics
+					ball.vx += ball.ax * fSimElapsedTime;
+					ball.vy += ball.ay * fSimElapsedTime;
+					ball.px += ball.vx * fSimElapsedTime;
+					ball.py += ball.vy * fSimElapsedTime;
+
+					// Rotation around the screen:
+					if (ball.px < 0) ball.px += (float)ScreenWidth();
+					if (ball.px >= ScreenWidth()) ball.px -= (float)ScreenWidth();
+					if (ball.py < 0) ball.py += (float)ScreenHeight();
+					if (ball.py >= ScreenHeight()) ball.py -= (float)ScreenHeight();
+
+					if (fabs(ball.vx * ball.vx + ball.vy * ball.vy) < 0.01f)
 					{
-						// Collision has occured
-						vecCollidingPairs.push_back({ &ball, &target });
-						
-						// Distance between ball centers:
-						float fDistance = sqrtf((ball.px - target.px) * (ball.px - target.px) + (ball.py - target.py) * (ball.py - target.py));
-
-						float fOverlap = 0.5f * (fDistance - ball.radius - target.radius);
-
-						// Displace current ball:
-						ball.px -= fOverlap * (ball.px - target.px) / fDistance;
-						ball.py -= fOverlap * (ball.py - target.py) / fDistance;
-
-						// Displace target ball:
-						target.px += fOverlap * (ball.px - target.px) / fDistance;
-						target.py += fOverlap * (ball.py - target.py) / fDistance;
+						ball.vx = 0;
+						ball.vy = 0;
 					}
+				}
+
+				for (auto& ball : vecBalls)
+				{
+					for (auto& target : vecBalls)
+					{
+						if (ball.id != target.id)
+						{
+							if (DoCirclesOverlap(ball.px, ball.py, ball.radius, target.px, target.py, target.radius))
+							{
+								// Collision has occured
+								vecCollidingPairs.push_back({ &ball, &target });
+
+								// Distance between ball centers:
+								float fDistance = sqrtf((ball.px - target.px) * (ball.px - target.px) + (ball.py - target.py) * (ball.py - target.py));
+
+								float fOverlap = 0.5f * (fDistance - ball.radius - target.radius);
+
+								// Displace current ball:
+								ball.px -= fOverlap * (ball.px - target.px) / fDistance;
+								ball.py -= fOverlap * (ball.py - target.py) / fDistance;
+
+								// Displace target ball:
+								target.px += fOverlap * (ball.px - target.px) / fDistance;
+								target.py += fOverlap * (ball.py - target.py) / fDistance;
+							}
+
+						}
+					}
+
+				}
+
+				// Work out dynamic collisions:
+				for (auto c : vecCollidingPairs)
+				{
+					sBall* b1 = c.first;
+					sBall* b2 = c.second;
+
+					// Distance between 2 balls
+					float fDistance = sqrtf((b1->px - b2->px) * (b1->px - b2->px) + (b1->py - b2->py) * (b1->py - b2->py));
+
+					// Normal:
+					float nx = (b2->px - b1->px) / fDistance;
+					float ny = (b2->py - b1->py) / fDistance;
+
+					// Tangent
+					float tx = -ny;
+					float ty = nx;
+
+					// Dot product tangent:
+					float dpTan1 = b1->vx * tx + b1->vy * ty;
+					float dpTan2 = b2->vx * tx + b2->vy * ty;
+
+					// Dot Product Normal:
+					float dpNorm1 = b1->vx * nx + b1->vy * ny;
+					float dpNorm2 = b2->vx * nx + b2->vy * ny;
+
+					// Conservation of momentum in 1D
+					float m1 = (dpNorm1 * (b1->mass - b2->mass) + 2.0f * b2->mass * dpNorm2) / (b1->mass + b2->mass);
+					float m2 = (dpNorm2 * (b2->mass - b1->mass) + 2.0f * b1->mass * dpNorm1) / (b1->mass + b2->mass);
+
+					// Update ball velocities
+					b1->vx = tx * dpTan1 + nx * m1;
+					b1->vy = ty * dpTan1 + ny * m1;
+					b2->vx = tx * dpTan2 + nx * m2;
+					b2->vy = ty * dpTan2 + ny * m2;
 
 				}
 			}
 
 		}
-
-		// Work out dynamic collisions:
-		for (auto c : vecCollidingPairs)
-		{
-			sBall *b1 = c.first;
-			sBall* b2 = c.second;
-
-			// Distance between 2 balls
-			float fDistance = sqrtf((b1->px - b2->px) * (b1->px - b2->px) + (b1->py - b2->py) * (b1->py - b2->py));
-
-			// Normal:
-			float nx = (b2->px - b1->px) / fDistance;
-			float ny = (b2->py - b1->py) / fDistance;
-
-			// Tangent
-			float tx = -ny;
-			float ty = nx;
-
-			// Dot product tangent:
-			float dpTan1 = b1->vx * tx + b1->vy * ty;
-			float dpTan2 = b2->vx * tx + b2->vy * ty;
-
-			// Dot Product Normal:
-			float dpNorm1 = b1->vx * nx + b1->vy * ny;
-			float dpNorm2 = b2->vx * nx + b2->vy * ny;
-
-			// Conservation of momentum in 1D
-			float m1 = (dpNorm1 * (b1->mass - b2->mass) + 2.0f * b2->mass * dpNorm2) / (b1->mass + b2->mass);
-			float m2 = (dpNorm2 * (b2->mass - b1->mass) + 2.0f * b1->mass * dpNorm1) / (b1->mass + b2->mass);
-
-			// Update ball velocities
-			b1->vx = tx * dpTan1 + nx * m1;
-			b1->vy = ty * dpTan1 + ny * m1;
-			b2->vx = tx * dpTan2 + nx * m2;
-			b2->vy = ty * dpTan2 + ny * m2;
-
-		}
-
 
 		// Clear screen
 		Fill(0, 0, ScreenWidth(), ScreenHeight(), ' ');
@@ -228,7 +250,7 @@ public:
 int main()
 {
 	CirclePhysics game;
-	if (game.ConstructConsole(190, 160, 5, 5))
+	if (game.ConstructConsole(160, 100, 8, 8))
 		game.Start();
 	else
 		wcout << L"Could not construct console" << endl;
