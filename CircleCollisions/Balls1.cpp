@@ -8,6 +8,7 @@ struct sBall
 	float px, py;
 	float vx, vy;
 	float ax, ay;
+	float ox, oy;
 	float radius;
 	float mass;
 
@@ -133,25 +134,32 @@ public:
 				// Update ball positions
 				for (auto& ball : vecBalls)
 				{
-					ball.ax = -ball.vx * 0.8f;
-					ball.ay = -ball.vy * 0.8f;
-
-					// Updating ball physics
-					ball.vx += ball.ax * fSimElapsedTime;
-					ball.vy += ball.ay * fSimElapsedTime;
-					ball.px += ball.vx * fSimElapsedTime;
-					ball.py += ball.vy * fSimElapsedTime;
-
-					// Rotation around the screen:
-					if (ball.px < 0) ball.px += (float)ScreenWidth();
-					if (ball.px >= ScreenWidth()) ball.px -= (float)ScreenWidth();
-					if (ball.py < 0) ball.py += (float)ScreenHeight();
-					if (ball.py >= ScreenHeight()) ball.py -= (float)ScreenHeight();
-
-					if (fabs(ball.vx * ball.vx + ball.vy * ball.vy) < 0.01f)
+					if (ball.fSimTimeRemaining > 0.0f)
 					{
-						ball.vx = 0;
-						ball.vy = 0;
+						ball.ox = ball.px;
+						ball.oy = ball.py;
+
+						ball.ax = -ball.vx * 0.8f;
+						ball.ay = -ball.vy * 0.8f;
+
+						// Updating ball physics
+						ball.vx += ball.ax * ball.fSimTimeRemaining;
+						ball.vy += ball.ay * ball.fSimTimeRemaining;
+						ball.px += ball.vx * ball.fSimTimeRemaining;
+						ball.py += ball.vy * ball.fSimTimeRemaining;
+
+						// Rotation around the screen:
+						if (ball.px < 0) ball.px += (float)ScreenWidth();
+						if (ball.px >= ScreenWidth()) ball.px -= (float)ScreenWidth();
+						if (ball.py < 0) ball.py += (float)ScreenHeight();
+						if (ball.py >= ScreenHeight()) ball.py -= (float)ScreenHeight();
+
+						// Clamp velocity near zero
+						if (fabs(ball.vx * ball.vx + ball.vy * ball.vy) < 0.01f)
+						{
+							ball.vx = 0;
+							ball.vy = 0;
+						}
 					}
 				}
 
@@ -183,6 +191,11 @@ public:
 						}
 					}
 
+
+					// Time displacement
+					float fIntendedSpeed = sqrtf(ball.vx * ball.vx + ball.vy * ball.vy);
+					float fIntendedDistance = fIntendedSpeed * ball.fSimTimeRemaining;
+					float fActualDistance = sqrtf((ball.px - ball.ox) * (ball.px - ball.ox) + (ball.py - ball.oy) * (ball.py - ball.oy));
 				}
 
 				// Work out dynamic collisions:
