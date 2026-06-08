@@ -164,6 +164,7 @@ public:
 		}
 
 		vector<pair<sBall*, sBall*>> vecCollidingPairs;
+		vector<sBall*> vecFakeBalls;
 
 		int nSimulationUpdates = 4;
 
@@ -229,6 +230,36 @@ public:
 						float fLineY2 = ball.py - edge.sy;
 
 						float fEdgeLength = fLineX1 * fLineX1 + fLineY1 * fLineY1;
+
+						float t = max(0, min(fEdgeLength, (fLineX1 * fLineX2 + fLineY1 * fLineY2))) / fEdgeLength;
+
+						float fClosestPointX = edge.sx + t * fLineX1;
+						float fClosestPointY = edge.sy + t * fLineY1;
+
+						float fDistance = sqrtf((ball.px - fClosestPointX) * (ball.px - fClosestPointX) + (ball.py - fClosestPointY) * (ball.py - fClosestPointY));
+
+						if (fDistance <= (ball.radius + edge.radius))
+						{
+							// Static collision has occured
+
+							sBall* fakeball = new sBall();
+							fakeball->radius = edge.radius;
+							fakeball->mass = ball.mass * 1.0f;
+							fakeball->px = fClosestPointX;
+							fakeball->py = fClosestPointY;
+							fakeball->vx = -ball.vx;
+							fakeball->vy = -ball.vy;
+
+							vecFakeBalls.push_back(fakeball);
+							vecCollidingPairs.push_back({ &ball, fakeball });
+
+							float fOverlap = 1.0f * (fDistance - ball.radius - fakeball->radius);
+
+							// Displace Current ball away from collision
+							ball.px -= fOverlap * (ball.px - fakeball->px) / fDistance;
+							ball.py -= fOverlap * (ball.py - fakeball->py) / fDistance;
+
+						}
 					}
 
 					for (auto& target : vecBalls)
@@ -304,6 +335,13 @@ public:
 					b2->vy = ty * dpTan2 + ny * m2;
 
 				}
+
+				// Remove fake balls
+				for (auto& b : vecFakeBalls) delete b;
+				vecFakeBalls.clear();
+
+				// Remove collisions
+				vecCollidingPairs.clear();
 			}
 
 		}
