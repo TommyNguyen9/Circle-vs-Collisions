@@ -17,6 +17,13 @@ struct sBall
 	int id;
 };
 
+struct sLineSegment
+{
+	float sx, sy;
+	float ex, ey;
+	float radius;
+};
+
 class CirclePhysics : public olcConsoleGameEngine
 {
 public:
@@ -29,6 +36,10 @@ private:
 	vector<pair<float, float>> modelCircle;
 	vector<sBall> vecBalls;
 	sBall* pSelectedBall = nullptr;
+
+	vector<sLineSegment> vecLines;
+	sLineSegment* pSelectedLine = nullptr;
+	bool bSelectedLineStart;
 
 	void AddBall(float x, float y, float r = 5.0f)
 	{
@@ -56,10 +67,13 @@ public:
 
 		float fDefaultRad = 8.0f;
 		//AddBall(ScreenWidth() * 0.25f, ScreenHeight() * 0.5f, fDefaultRad);
-		//AddBall(ScreenWidth() * 0.75f, ScreenHeight() * 0.5f, fDefaultRad);
+		AddBall(ScreenWidth() * 0.75f, ScreenHeight() * 0.5f, fDefaultRad);
 
 		for (int i = 0; i < 50; i++)
 			AddBall(rand() % ScreenWidth(), rand() % ScreenHeight(), rand() % 6 + 2);
+
+		float fLineRadius = 4.0f;
+		vecLines.push_back({ 30.0f, 30.0f, 100.0f, 30.0f, fLineRadius });
 
 		return true;
 	}
@@ -87,6 +101,27 @@ public:
 					break;
 				}
 			}
+
+			// Check for selected line segment end
+			pSelectedLine = nullptr;
+			for (auto& line : vecLines)
+			{
+				if (IsPointInCircle(line.sx, line.sy, line.radius, m_mousePosX, m_mousePosY))
+				{
+					pSelectedLine = &line;
+					bSelectedLineStart = true;
+					break;
+				}
+
+				if (IsPointInCircle(line.ex, line.ey, line.radius, m_mousePosX, m_mousePosY))
+				{
+					pSelectedLine = &line;
+					bSelectedLineStart = true;
+					break;
+				}
+			}
+
+
 		}
 
 		if (m_mouse[0].bHeld)
@@ -196,6 +231,10 @@ public:
 					float fIntendedSpeed = sqrtf(ball.vx * ball.vx + ball.vy * ball.vy);
 					float fIntendedDistance = fIntendedSpeed * ball.fSimTimeRemaining;
 					float fActualDistance = sqrtf((ball.px - ball.ox) * (ball.px - ball.ox) + (ball.py - ball.oy) * (ball.py - ball.oy));
+					float fActualTime = fActualDistance / fIntendedSpeed;
+
+					ball.fSimTimeRemaining = ball.fSimTimeRemaining - fActualTime;
+
 				}
 
 				// Work out dynamic collisions:
@@ -240,6 +279,22 @@ public:
 
 		// Clear screen
 		Fill(0, 0, ScreenWidth(), ScreenHeight(), ' ');
+
+		// Draw Lines
+		for (auto line : vecLines)
+		{
+			FillCircle(line.sx, line.sy, line.radius, PIXEL_HALF, FG_WHITE);
+			FillCircle(line.ex, line.ey, line.radius, PIXEL_HALF, FG_WHITE);
+
+			float nx = -(line.ey - line.sy);
+			float ny = (line.ex - line.sx);
+			float d = sqrt(nx * nx + ny * ny);
+			nx /= d;
+			ny /= d;
+
+			DrawLine((line.sx + nx * line.radius), (line.sy + ny * line.radius), (line.ex + nx * line.radius), (line.ey + ny * line.radius));
+			DrawLine((line.sx + nx * line.radius), (line.sy - ny * line.radius), (line.ex - nx * line.radius), (line.ey - ny * line.radius));
+		}
 
 		// Draw Balls:
 		for (auto ball : vecBalls)
